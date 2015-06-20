@@ -18,6 +18,16 @@ describe 'Savanna Outliers' do
     Savanna::Outliers.any_outliers?(hash_one, :max).should == true
   end
 
+  # 9223372036854775806 is (2**(0.size * 8 -2) -1) * 2 (which is Fixnum's max doubled)
+  it 'should identify max outliers existance for high numbers bigger than integers' do
+    array_one = [10, 12, 8, 11, 9, 13, 12, 10, 1000, 12, 10, 1100, 9, 5000, 9223372036854775806]
+    hash_one = {a: 10, b: 12, c: 8, d: 11, e: 9, f: 13, g: 12, h: 10, i: 1000, j: 12, k: 10, l: 1100, m: 9, n: 5000, o: 9223372036854775806}
+    Savanna::Outliers.any_outliers?(array_one, :max, :grubbs).should == true
+    Savanna::Outliers.any_outliers?(hash_one, :max, :grubbs).should == true
+    Savanna::Outliers.any_outliers?(array_one, :max).should == true
+    Savanna::Outliers.any_outliers?(hash_one, :max).should == true
+  end
+
   it 'should identify min outliers existance' do
     array_one = [10, 12, 8, 11, 9, 13, 12, 10, -1000, 12, 10, -1100, 9, -5000]
     hash_one = {a: 10, b: 12, c: 8, d: 11, e: 9, f: 13, g: 12, h: 10, i: -1000, j: 12, k: 10, l: -1100, m: 9, n: -5000}
@@ -36,12 +46,30 @@ describe 'Savanna Outliers' do
     Savanna::Outliers.get_outliers(array_two, :max).should == [100, 90]
   end
 
+  it 'should return max outliers from array for high numbers bigger than integers' do
+    array_one = [10, 12, 8, 11, 9, 13, 12, 10, 1000, 12, 10, 1100, 9, 5000, 9223372036854775806]
+    array_two = [20, 30, 100, 10, 15, 10, 12, 13, 5, 25, 40, 35, 22, 15, 90]
+    Savanna::Outliers.get_outliers(array_one, :max, :grubbs).should == [9223372036854775806, 5000, 1100, 1000]
+    Savanna::Outliers.get_outliers(array_two, :max, :grubbs).should == [100, 90]
+    Savanna::Outliers.get_outliers(array_one, :max).should == [9223372036854775806, 5000, 1100, 1000]
+    Savanna::Outliers.get_outliers(array_two, :max).should == [100, 90]
+  end
+
   it 'should return min outliers from array' do
     array_one = [10, 12, 8, 11, 9, 13, 12, 10, -1000, 12, 10, -1100, 9, -5000]
     array_two = [20, 30, -100, 10, 15, 10, 12, 13, 5, 25, 40, 35, 22, 15, -90]
     Savanna::Outliers.get_outliers(array_one, :min, :grubbs).should == [-5000, -1100, -1000]
     Savanna::Outliers.get_outliers(array_two, :min, :grubbs).should == [-100, -90]
     Savanna::Outliers.get_outliers(array_one, :min).should == [-5000, -1100, -1000]
+    Savanna::Outliers.get_outliers(array_two, :min).should == [-100, -90]
+  end
+
+  it 'should return min outliers from array for small numbers outside the Fixnum range' do
+    array_one = [10, 12, 8, 11, 9, 13, 12, 10, -1000, 12, 10, -9223372036854775806, -1100, 9, -5000]
+    array_two = [20, 30, -100, 10, 15, 10, 12, 13, 5, 25, 40, 35, 22, 15, -90]
+    Savanna::Outliers.get_outliers(array_one, :min, :grubbs).should == [-9223372036854775806, -5000, -1100, -1000]
+    Savanna::Outliers.get_outliers(array_two, :min, :grubbs).should == [-100, -90]
+    Savanna::Outliers.get_outliers(array_one, :min).should == [-9223372036854775806, -5000, -1100, -1000]
     Savanna::Outliers.get_outliers(array_two, :min).should == [-100, -90]
   end
 
@@ -108,6 +136,15 @@ describe 'Savanna Outliers' do
     Savanna::Outliers.remove_outliers(array_one, :all, :grubbs).should == [10, 12, 8, 11, 9, 13, 12, 10, 12, 10, 9]
     Savanna::Outliers.remove_outliers(array_two, :all, :grubbs).should == [20, 30, 10, 15, 10, 12, 13, 5, 25, 40, 35, 22, 15]
     Savanna::Outliers.remove_outliers(array_one, :all).should == [10, 12, 8, 11, 9, 13, 12, 10, 12, 10, 9]
+    Savanna::Outliers.remove_outliers(array_two, :all).should == [20, 30, 10, 15, 10, 12, 13, 5, 25, 40, 35, 22, 15]
+  end
+
+  it 'should remove all outliers from array  for high numbers bigger than integers' do
+    array_one = [10, 12, 8, 11, 9, 13, 12, 10, -1000, 1000, 12, 10, 9, 9223372036854775806, 999999999999999]
+    array_two = [20, 30, -100, 140, 10, 15, 10, 12, 13, 5, 25, 40, 35, 22, 15]
+    Savanna::Outliers.remove_outliers(array_one, :all, :grubbs).should == [10, 12, 8, 11, 9, 13, 12, 10, -1000, 12, 10, 9]
+    Savanna::Outliers.remove_outliers(array_two, :all, :grubbs).should == [20, 30, 10, 15, 10, 12, 13, 5, 25, 40, 35, 22, 15]
+    Savanna::Outliers.remove_outliers(array_one, :all).should == [10, 12, 8, 11, 9, 13, 12, 10, -1000, 12, 10, 9]
     Savanna::Outliers.remove_outliers(array_two, :all).should == [20, 30, 10, 15, 10, 12, 13, 5, 25, 40, 35, 22, 15]
   end
 
